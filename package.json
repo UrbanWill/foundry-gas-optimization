@@ -1,0 +1,23 @@
+{
+  "name": "gasoptimisationfoundry",
+  "version": "1.0.0",
+  "description": "- Your task is to edit and optimise the Gas.sol contract.  - You cannot edit the tests &  - All the tests must pass. - You can change the functionality of the contract as long as the tests pass.  - Try to get the gas usage as low as possible.",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/UrbanWill/foundry-gas-optimization.git"
+  },
+  "author": "Will Urban",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/UrbanWill/foundry-gas-optimization/issues"
+  },
+  "homepage": "https://github.com/UrbanWill/foundry-gas-optimization#readme"
+}
