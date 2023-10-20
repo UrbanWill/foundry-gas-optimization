@@ -5,8 +5,8 @@ contract GasContract {
     // Keeping the administrators array because one of the tests is getting they array items by index, still adding the mapping saves gas overall
     address[5] public administrators;
     mapping(address => bool) s_administrators;
-    uint256 totalSupply = 0; // consider making this immutable
-    uint256 paymentCounter = 0;
+    uint256 totalSupply; // consider making this immutable
+    uint256 paymentCounter;
     mapping(address => uint256) public balances;
     mapping(address => Payment[]) payments;
     mapping(address => uint256) public whitelist;
@@ -31,7 +31,7 @@ contract GasContract {
 
     function isAdminOrOwner() internal view {
         address senderOfTx = msg.sender;
-        if (!s_administrators[senderOfTx] || senderOfTx != contractOwner) revert("onlyAdminOrOwner");
+        if (!s_administrators[senderOfTx] || senderOfTx != contractOwner) revert();
     }
 
     constructor(address[] memory _admins, uint256 _totalSupply) {
@@ -62,15 +62,9 @@ contract GasContract {
     }
 
     function transfer(address _recipient, uint256 _amount, string calldata _name) public returns (bool status_) {
-        address senderOfTx = msg.sender;
-        if (balances[senderOfTx] < _amount) revert("insufficientBalance");
-        if (bytes(_name).length >= 9) revert("min9chars");
-        balances[senderOfTx] -= _amount;
+        balances[msg.sender] -= _amount;
         balances[_recipient] += _amount;
-        Payment memory payment;
-        payment.amount = _amount;
-        payment.paymentID = ++paymentCounter;
-        payments[senderOfTx].push(payment);
+        payments[msg.sender].push(Payment({amount: _amount, paymentID: ++paymentCounter}));
         bool[] memory status = new bool[](TRADE_PERCENT);
         for (uint256 i = 0; i < TRADE_PERCENT; i++) {
             status[i] = true;
@@ -90,34 +84,26 @@ contract GasContract {
 
     function addToWhitelist(address _userAddrs, uint256 _tier) public {
         isAdminOrOwner();
-        if (_tier >= 255) revert("tierMustBeLT255");
-
-        whitelist[_userAddrs] = _tier;
-        if (_tier > 3) {
-            whitelist[_userAddrs] -= _tier;
-            whitelist[_userAddrs] = 3;
-        } else if (_tier == 1) {
-            whitelist[_userAddrs] -= _tier;
-            whitelist[_userAddrs] = 1;
-        } else if (_tier > 0 && _tier < 3) {
-            whitelist[_userAddrs] -= _tier;
-            whitelist[_userAddrs] = 2;
-        }
+        if (_tier >= 255) revert();
+        uint256 temp;
+        _tier > 3 ? temp = 3 : _tier > 0 && _tier < 3 ? temp = 2 : temp = 1;
+        whitelist[_userAddrs] = temp;
         emit AddedToWhitelist(_userAddrs, _tier);
     }
 
     function whiteTransfer(address _recipient, uint256 _amount) public {
         address senderOfTx = msg.sender;
-        uint256 usersTier = whitelist[senderOfTx];
-        if (usersTier <= 0 || usersTier >= 4) revert("incorrectTier");
-        whiteListStruct[senderOfTx] = ImportantStruct(_amount, true);
-        if (balances[senderOfTx] < _amount) revert("insufficientBalance");
-        if (_amount <= 3) revert("reqAmmountGT3");
 
-        balances[senderOfTx] -= _amount;
-        balances[_recipient] += _amount;
-        balances[senderOfTx] += whitelist[senderOfTx];
-        balances[_recipient] -= whitelist[senderOfTx];
+        whiteListStruct[senderOfTx] = ImportantStruct(_amount, true);
+        uint256 senderBalance = balances[msg.sender];
+        uint256 recipientBalance = balances[_recipient];
+
+        senderBalance -= _amount;
+        recipientBalance += _amount;
+
+        // Update sender and recipient balances
+        balances[msg.sender] = senderBalance + whitelist[msg.sender];
+        balances[_recipient] = recipientBalance - whitelist[msg.sender];
 
         emit WhiteListTransfer(_recipient);
     }
