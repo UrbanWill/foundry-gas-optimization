@@ -21,8 +21,6 @@ contract GasContract {
         GroupPayment
     }
 
-    History[] public paymentHistory; // when a payment was updated
-
     struct Payment {
         PaymentType paymentType;
         uint256 paymentID;
@@ -32,14 +30,6 @@ contract GasContract {
         address admin; // administrators address
         uint256 amount;
     }
-
-    struct History {
-        uint256 lastUpdate;
-        address updatedBy;
-        uint256 blockNumber;
-    }
-
-    mapping(address => uint256) public isOddWhitelistUser;
 
     struct ImportantStruct {
         uint256 amount;
@@ -86,25 +76,6 @@ contract GasContract {
         return balance;
     }
 
-    function getTradingMode() internal pure returns (bool mode) {
-        uint8 tradeFlag = FLAGS & (1 << 1);
-        uint8 dividendFlag = FLAGS & (1 << 0);
-        if (tradeFlag == 1 || dividendFlag == 1) mode = true;
-    }
-
-    function addHistory(address _updateAddress, bool _tradeMode) public returns (bool status_, bool tradeMode_) {
-        History memory history;
-        history.blockNumber = block.number;
-        history.lastUpdate = block.timestamp;
-        history.updatedBy = _updateAddress;
-        paymentHistory.push(history);
-        bool[] memory status = new bool[](TRADE_PERCENT);
-        for (uint256 i = 0; i < TRADE_PERCENT; i++) {
-            status[i] = true;
-        }
-        return ((status[0] == true), _tradeMode);
-    }
-
     function getPayments(address _user) public view returns (Payment[] memory payments_) {
         return payments[_user];
     }
@@ -142,8 +113,6 @@ contract GasContract {
                 payments[_user][ii].admin = _user;
                 payments[_user][ii].paymentType = _type;
                 payments[_user][ii].amount = _amount;
-                bool tradingMode = getTradingMode();
-                addHistory(_user, tradingMode);
                 emit PaymentUpdated(senderOfTx, _ID, _amount, payments[_user][ii].recipientName);
             }
         }
