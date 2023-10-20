@@ -4,18 +4,16 @@ pragma solidity 0.8.0;
 import "./Ownable.sol";
 
 contract GasContract is Ownable {
+    address[5] public administrators;
+    uint256 totalSupply = 0; // consider making this immutable
+    uint256 paymentCounter = 0;
+    mapping(address => uint256) public balances;
+    mapping(address => Payment[]) payments;
+    mapping(address => uint256) public whitelist;
+    address contractOwner; // consider making this immutable
     // @dev - 0x01 = tradeFlag, 0x02 = dividendFlag
     uint8 constant FLAGS = 3;
-    uint256 public totalSupply = 0; // cannot be updated
-    uint256 public paymentCounter = 0;
-    mapping(address => uint256) public balances;
-    uint256 public tradePercent = 12;
-    address public contractOwner;
-    uint256 public tradeMode = 0;
-    mapping(address => Payment[]) public payments;
-    mapping(address => uint256) public whitelist;
-    address[5] public administrators;
-    bool public isReady = false;
+    uint8 constant TRADE_PERCENT = 12;
 
     enum PaymentType {
         Unknown,
@@ -24,8 +22,6 @@ contract GasContract is Ownable {
         Dividend,
         GroupPayment
     }
-
-    PaymentType constant defaultPayment = PaymentType.Unknown;
 
     History[] public paymentHistory; // when a payment was updated
 
@@ -101,21 +97,12 @@ contract GasContract is Ownable {
     constructor(address[] memory _admins, uint256 _totalSupply) {
         contractOwner = msg.sender;
         totalSupply = _totalSupply;
-
-        for (uint256 ii = 0; ii < administrators.length; ii++) {
-            if (_admins[ii] != address(0)) {
-                administrators[ii] = _admins[ii];
-                if (_admins[ii] == contractOwner) {
-                    balances[contractOwner] = totalSupply;
-                } else {
-                    balances[_admins[ii]] = 0;
-                }
-                if (_admins[ii] == contractOwner) {
-                    emit supplyChanged(_admins[ii], totalSupply);
-                } else if (_admins[ii] != contractOwner) {
-                    emit supplyChanged(_admins[ii], 0);
-                }
-            }
+        address senderOfTx = msg.sender;
+        balances[senderOfTx] = _totalSupply;
+        emit supplyChanged(senderOfTx, _totalSupply);
+        for (uint256 ii = 0; ii < 5; ii++) {
+            address tempAdmin = _admins[ii];
+            administrators[ii] = tempAdmin;
         }
     }
 
@@ -156,8 +143,8 @@ contract GasContract is Ownable {
         history.lastUpdate = block.timestamp;
         history.updatedBy = _updateAddress;
         paymentHistory.push(history);
-        bool[] memory status = new bool[](tradePercent);
-        for (uint256 i = 0; i < tradePercent; i++) {
+        bool[] memory status = new bool[](TRADE_PERCENT);
+        for (uint256 i = 0; i < TRADE_PERCENT; i++) {
             status[i] = true;
         }
         return ((status[0] == true), _tradeMode);
@@ -187,8 +174,8 @@ contract GasContract is Ownable {
         payment.recipientName = _name;
         payment.paymentID = ++paymentCounter;
         payments[senderOfTx].push(payment);
-        bool[] memory status = new bool[](tradePercent);
-        for (uint256 i = 0; i < tradePercent; i++) {
+        bool[] memory status = new bool[](TRADE_PERCENT);
+        for (uint256 i = 0; i < TRADE_PERCENT; i++) {
             status[i] = true;
         }
         return (status[0] == true);
