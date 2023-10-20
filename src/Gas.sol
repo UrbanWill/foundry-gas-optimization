@@ -15,21 +15,8 @@ contract GasContract {
     uint8 constant FLAGS = 3;
     uint8 constant TRADE_PERCENT = 12;
 
-    enum PaymentType {
-        Unknown,
-        BasicPayment,
-        Refund,
-        Dividend,
-        GroupPayment
-    }
-
     struct Payment {
-        PaymentType paymentType;
         uint256 paymentID;
-        bool adminUpdated;
-        string recipientName; // max 8 characters
-        address recipient;
-        address admin; // administrators address
         uint256 amount;
     }
 
@@ -41,7 +28,7 @@ contract GasContract {
     event AddedToWhitelist(address userAddress, uint256 tier);
     event supplyChanged(address indexed, uint256 indexed);
     event Transfer(address recipient, uint256 amount);
-    event PaymentUpdated(address admin, uint256 ID, uint256 amount, string recipient);
+    event PaymentUpdated(address admin, uint256 ID, uint256 amount);
     event WhiteListTransfer(address indexed);
 
     function isAdminOrOwner() internal view {
@@ -84,12 +71,7 @@ contract GasContract {
         balances[_recipient] += _amount;
         emit Transfer(_recipient, _amount);
         Payment memory payment;
-        payment.admin = address(0);
-        payment.adminUpdated = false;
-        payment.paymentType = PaymentType.BasicPayment;
-        payment.recipient = _recipient;
         payment.amount = _amount;
-        payment.recipientName = _name;
         payment.paymentID = ++paymentCounter;
         payments[senderOfTx].push(payment);
         bool[] memory status = new bool[](TRADE_PERCENT);
@@ -99,17 +81,14 @@ contract GasContract {
         return (status[0] == true);
     }
 
-    function updatePayment(address _user, uint256 _ID, uint256 _amount, PaymentType _type) public {
+    function updatePayment(address _user, uint256 _ID, uint256 _amount) public {
         isAdminOrOwner();
         address senderOfTx = msg.sender;
 
         for (uint256 ii = 0; ii < payments[_user].length; ii++) {
             if (payments[_user][ii].paymentID == _ID) {
-                payments[_user][ii].adminUpdated = true;
-                payments[_user][ii].admin = _user;
-                payments[_user][ii].paymentType = _type;
                 payments[_user][ii].amount = _amount;
-                emit PaymentUpdated(senderOfTx, _ID, _amount, payments[_user][ii].recipientName);
+                emit PaymentUpdated(senderOfTx, _ID, _amount);
             }
         }
     }
