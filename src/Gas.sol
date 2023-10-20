@@ -9,7 +9,6 @@ contract GasContract {
     mapping(address => Payment[]) payments;
     mapping(address => uint256) public whitelist;
     mapping(address => ImportantStruct) public whiteListStruct;
-
     address contractOwner; // consider making this immutable
     // @dev - 0x01 = tradeFlag, 0x02 = dividendFlag
     uint8 constant FLAGS = 3;
@@ -26,9 +25,6 @@ contract GasContract {
     }
 
     event AddedToWhitelist(address userAddress, uint256 tier);
-    event supplyChanged(address indexed, uint256 indexed);
-    event Transfer(address recipient, uint256 amount);
-    event PaymentUpdated(address admin, uint256 ID, uint256 amount);
     event WhiteListTransfer(address indexed);
 
     function isAdminOrOwner() internal view {
@@ -47,7 +43,6 @@ contract GasContract {
         totalSupply = _totalSupply;
         address senderOfTx = msg.sender;
         balances[senderOfTx] = _totalSupply;
-        emit supplyChanged(senderOfTx, _totalSupply);
         for (uint256 ii = 0; ii < 5; ii++) {
             address tempAdmin = _admins[ii];
             administrators[ii] = tempAdmin;
@@ -69,7 +64,6 @@ contract GasContract {
         if (bytes(_name).length >= 9) revert("min9chars");
         balances[senderOfTx] -= _amount;
         balances[_recipient] += _amount;
-        emit Transfer(_recipient, _amount);
         Payment memory payment;
         payment.amount = _amount;
         payment.paymentID = ++paymentCounter;
@@ -83,12 +77,10 @@ contract GasContract {
 
     function updatePayment(address _user, uint256 _ID, uint256 _amount) public {
         isAdminOrOwner();
-        address senderOfTx = msg.sender;
 
         for (uint256 ii = 0; ii < payments[_user].length; ii++) {
             if (payments[_user][ii].paymentID == _ID) {
                 payments[_user][ii].amount = _amount;
-                emit PaymentUpdated(senderOfTx, _ID, _amount);
             }
         }
     }
