@@ -2,7 +2,9 @@
 pragma solidity 0.8.0;
 
 contract GasContract {
+    // Keeping the administrators array because one of the tests is getting they array items by index, still adding the mapping saves gas overall
     address[5] public administrators;
+    mapping(address => bool) s_administrators;
     uint256 totalSupply = 0; // consider making this immutable
     uint256 paymentCounter = 0;
     mapping(address => uint256) public balances;
@@ -29,13 +31,7 @@ contract GasContract {
 
     function isAdminOrOwner() internal view {
         address senderOfTx = msg.sender;
-        bool admin;
-        for (uint256 i = 0; i < 5; i++) {
-            if (administrators[i] == senderOfTx) {
-                admin = true;
-            }
-        }
-        if (!admin || senderOfTx != contractOwner) revert("onlyAdminOrOwner");
+        if (!s_administrators[senderOfTx] || senderOfTx != contractOwner) revert("onlyAdminOrOwner");
     }
 
     constructor(address[] memory _admins, uint256 _totalSupply) {
@@ -43,9 +39,16 @@ contract GasContract {
         totalSupply = _totalSupply;
         address senderOfTx = msg.sender;
         balances[senderOfTx] = _totalSupply;
-        for (uint256 ii = 0; ii < 5; ii++) {
-            address tempAdmin = _admins[ii];
-            administrators[ii] = tempAdmin;
+
+        assembly {
+            mstore(32, s_administrators.slot)
+            let adminSlot := administrators.slot
+            for { let i := 0 } lt(i, 6) { i := add(i, 1) } {
+                let admin := mload(add(_admins, mul(i, 0x20)))
+                let hash := keccak256(0, 64)
+                sstore(hash, true)
+                sstore(add(adminSlot, sub(i, 1)), admin)
+            }
         }
     }
 
