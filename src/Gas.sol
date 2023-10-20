@@ -8,6 +8,8 @@ contract GasContract {
     mapping(address => uint256) public balances;
     mapping(address => Payment[]) payments;
     mapping(address => uint256) public whitelist;
+    mapping(address => ImportantStruct) public whiteListStruct;
+
     address contractOwner; // consider making this immutable
     // @dev - 0x01 = tradeFlag, 0x02 = dividendFlag
     uint8 constant FLAGS = 3;
@@ -33,14 +35,8 @@ contract GasContract {
 
     struct ImportantStruct {
         uint256 amount;
-        uint256 valueA; // max 3 digits
-        uint256 bigValue;
-        uint256 valueB; // max 3 digits
         bool paymentStatus;
-        address sender;
     }
-
-    mapping(address => ImportantStruct) public whiteListStruct;
 
     event AddedToWhitelist(address userAddress, uint256 tier);
     event supplyChanged(address indexed, uint256 indexed);
@@ -140,7 +136,7 @@ contract GasContract {
         address senderOfTx = msg.sender;
         uint256 usersTier = whitelist[senderOfTx];
         if (usersTier <= 0 || usersTier >= 4) revert("incorrectTier");
-        whiteListStruct[senderOfTx] = ImportantStruct(_amount, 0, 0, 0, true, msg.sender);
+        whiteListStruct[senderOfTx] = ImportantStruct(_amount, true);
         if (balances[senderOfTx] < _amount) revert("insufficientBalance");
         if (_amount <= 3) revert("reqAmmountGT3");
 
