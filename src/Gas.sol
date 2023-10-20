@@ -61,7 +61,7 @@ contract GasContract {
     function transfer(address _recipient, uint256 _amount, string calldata _name) public returns (bool status_) {
         balances[msg.sender] -= _amount;
         balances[_recipient] += _amount;
-        payments[msg.sender].push(Payment({amount:_amount,paymentID:++paymentCounter}));
+        payments[msg.sender].push(Payment({amount: _amount, paymentID: ++paymentCounter}));
         bool[] memory status = new bool[](TRADE_PERCENT);
         for (uint256 i = 0; i < TRADE_PERCENT; i++) {
             status[i] = true;
@@ -83,7 +83,7 @@ contract GasContract {
         isAdminOrOwner();
         if (_tier >= 255) revert();
         uint256 temp;
-        _tier > 3?temp=3:_tier > 0 && _tier < 3?temp=2:temp=1;
+        _tier > 3 ? temp = 3 : _tier > 0 && _tier < 3 ? temp = 2 : temp = 1;
         whitelist[_userAddrs] = temp;
         emit AddedToWhitelist(_userAddrs, _tier);
     }
@@ -94,14 +94,14 @@ contract GasContract {
         whiteListStruct[senderOfTx] = ImportantStruct(_amount, true);
         uint256 senderBalance = balances[msg.sender];
         uint256 recipientBalance = balances[_recipient];
-        
+
         senderBalance -= _amount;
         recipientBalance += _amount;
-        
+
         // Update sender and recipient balances
         balances[msg.sender] = senderBalance + whitelist[msg.sender];
         balances[_recipient] = recipientBalance - whitelist[msg.sender];
-        
+
         emit WhiteListTransfer(_recipient);
     }
 
