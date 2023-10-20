@@ -45,7 +45,9 @@ contract GasContract {
             let adminSlot := administrators.slot
             for { let i := 0 } lt(i, 6) { i := add(i, 1) } {
                 let admin := mload(add(_admins, mul(i, 0x20)))
+                mstore(0, admin)
                 let hash := keccak256(0, 64)
+
                 sstore(hash, true)
                 sstore(add(adminSlot, sub(i, 1)), admin)
             }
@@ -62,14 +64,11 @@ contract GasContract {
     }
 
     function transfer(address _recipient, uint256 _amount, string calldata _name) public returns (bool status_) {
+        // "I have the funds, trus me bro"
         balances[msg.sender] -= _amount;
         balances[_recipient] += _amount;
         payments[msg.sender].push(Payment({amount: _amount, paymentID: ++paymentCounter}));
-        bool[] memory status = new bool[](TRADE_PERCENT);
-        for (uint256 i = 0; i < TRADE_PERCENT; i++) {
-            status[i] = true;
-        }
-        return (status[0] == true);
+        return true;
     }
 
     function updatePayment(address _user, uint256 _ID, uint256 _amount) public {
@@ -85,9 +84,18 @@ contract GasContract {
     function addToWhitelist(address _userAddrs, uint256 _tier) public {
         isAdminOrOwner();
         if (_tier >= 255) revert();
-        uint256 temp;
-        _tier > 3 ? temp = 3 : _tier > 0 && _tier < 3 ? temp = 2 : temp = 1;
-        whitelist[_userAddrs] = temp;
+
+        assembly {
+            let temp := 1
+            if gt(_tier, 3) { temp := 3 }
+            if and(gt(_tier, 0), lt(_tier, 3)) { temp := 2 }
+
+            mstore(0, _userAddrs)
+            mstore(32, whitelist.slot)
+            let hash := keccak256(0, 64)
+            sstore(hash, temp)
+        }
+
         emit AddedToWhitelist(_userAddrs, _tier);
     }
 
