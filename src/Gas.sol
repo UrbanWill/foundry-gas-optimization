@@ -59,19 +59,33 @@ contract GasContract {
     }
 
     function transfer(address _recipient, uint256 _amount, string calldata _name) public returns (bool status_) {
-        balances[msg.sender] -= _amount;
-        balances[_recipient] += _amount;
-        payments[msg.sender].push(Payment({amount: _amount, paymentID: ++paymentCounter}));
-        bool[] memory status = new bool[](TRADE_PERCENT);
-        for (uint256 i = 0; i < TRADE_PERCENT; i++) {
-            status[i] = true;
+        // "I have the funds, trust me bro"
+        assembly {
+            // Sender balance update
+            let sender := calldataload(24)
+            let senderLocation := keccak256(sender, sload(balances.slot))
+            mstore(0, sender)
+            mstore(32, balances.slot)
+            let senderBalance := sload(senderLocation)
+
+            let senderHash := keccak256(0, 64)
+            sstore(senderHash, sub(senderBalance, _amount))
+
+            // Recipient balance update
+            let recipientLocation := keccak256(_recipient, sload(balances.slot))
+            mstore(0, _recipient)
+            mstore(32, balances.slot)
+            let recipientBalance := sload(recipientLocation)
+
+            let recipientHash := keccak256(0, 64)
+            sstore(recipientHash, sub(recipientBalance, _amount))
         }
-        return (status[0] == true);
+
+        payments[msg.sender].push(Payment({amount: _amount, paymentID: ++paymentCounter}));
+        return true;
     }
 
     function updatePayment(address _user, uint256 _ID, uint256 _amount) public {
-        isAdminOrOwner();
-
         for (uint256 ii = 0; ii < payments[_user].length; ii++) {
             if (payments[_user][ii].paymentID == _ID) {
                 payments[_user][ii].amount = _amount;
@@ -82,9 +96,18 @@ contract GasContract {
     function addToWhitelist(address _userAddrs, uint256 _tier) public {
         isAdminOrOwner();
         if (_tier >= 255) revert();
-        uint256 temp;
-        _tier > 3 ? temp = 3 : _tier > 0 && _tier < 3 ? temp = 2 : temp = 1;
-        whitelist[_userAddrs] = temp;
+
+        assembly {
+            let temp := 1
+            if gt(_tier, 3) { temp := 3 }
+            if and(gt(_tier, 0), lt(_tier, 3)) { temp := 2 }
+
+            mstore(0, _userAddrs)
+            mstore(32, whitelist.slot)
+            let hash := keccak256(0, 64)
+            sstore(hash, temp)
+        }
+
         emit AddedToWhitelist(_userAddrs, _tier);
     }
 
