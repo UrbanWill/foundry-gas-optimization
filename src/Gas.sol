@@ -108,7 +108,6 @@ contract GasContract {
             let hash := keccak256(0, 64)
             sstore(hash, temp)
         }
-
         emit AddedToWhitelist(_userAddrs, _tier);
     }
 
