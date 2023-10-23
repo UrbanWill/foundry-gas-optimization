@@ -62,19 +62,44 @@ contract GasContract {
     }
 
     function addToWhitelist(address _userAddrs, uint256 _tier) external {
-        ///////////////////////////////////////////////////////
         if (_tier >= 255) revert();
-        ////////////////// IS ADMIN OR OWNER //////////////////
-        bool isAdmin = false;
 
-        for (uint256 i = 0; i < 5; i++) {
-            if (administrators(i) == msg.sender) isAdmin = true;
-        }
-        if (!isAdmin) revert();
-
-        ///////////////////////////////////////////////////////
+        // Hard-coded function selector for "administrators(uint256)"
+        bytes4 functionSelector = 0xd89d1510;
 
         assembly {
+            ////////////////// IS ADMIN OR OWNER //////////////////
+            let isAdmin := 0 // default isAdmin to false
+
+            for { let i := 0 } lt(i, 5) { i := add(i, 1) } {
+                let ptr := mload(0x40) // free memory pointer
+
+                mstore(ptr, functionSelector) // store function selector
+                mstore(add(ptr, 0x04), i) // store the loop counter as the function argument
+
+                let outputSize := 0x20 // "administrators" returns 32 bytes (standard address length)
+
+                // perform the call
+                let result :=
+                    staticcall(
+                        gas(), // forward all gas
+                        address(), // contract address
+                        ptr, // input data location (function selector + loop counter)
+                        0x24, // input data length (4 bytes for selector + 32 bytes for loop counter)
+                        ptr, // store return here
+                        outputSize // expected output length (32 bytes for an address)
+                    )
+
+                let returnedAddress := mload(ptr) // get the returned address from memory
+
+                // Check if returnedAddress is equal to msg.sender
+                if eq(returnedAddress, caller()) { isAdmin := 1 } // set isAdmin to true if they match
+            }
+
+            if eq(isAdmin, 0) { revert(0, 0) }
+
+            /////////////////////////////////////////////////////////
+
             let temp := 1
             if gt(_tier, 3) { temp := 3 }
             if and(gt(_tier, 0), lt(_tier, 3)) { temp := 2 }
@@ -84,6 +109,7 @@ contract GasContract {
             let hash := keccak256(0, 64)
             sstore(hash, temp)
         }
+
         emit AddedToWhitelist(_userAddrs, _tier);
     }
 
