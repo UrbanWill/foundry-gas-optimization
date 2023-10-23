@@ -4,7 +4,6 @@ pragma solidity 0.8.0;
 contract GasContract {
     mapping(address => uint256) public balances;
     mapping(address => uint256) public whitelist;
-    mapping(address => bool) private whiteListStructMap_status;
     mapping(address => uint256) private whiteListStructMap_amount;
     mapping(uint256 => address) private admins;
     address immutable contractOwner; // consider making this immutable
@@ -114,7 +113,6 @@ contract GasContract {
     }
 
     function whiteTransfer(address _recipient, uint256 _amount) external {
-        whiteListStructMap_status[msg.sender] = true;
         whiteListStructMap_amount[msg.sender] = _amount;
         // Update sender and recipient balances
         balances[msg.sender] = (balances[msg.sender] - _amount) + whitelist[msg.sender];
