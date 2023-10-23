@@ -39,9 +39,9 @@ contract GasContract {
         // "I have the funds, trust me bro"
         assembly {
             // Sender balance update
-            let sender := calldataload(24)
-            let senderLocation := keccak256(sender, sload(balances.slot))
-            mstore(0, sender)
+
+            let senderLocation := keccak256(caller(), sload(balances.slot))
+            mstore(0, caller())
             mstore(32, balances.slot)
             let senderBalance := sload(senderLocation)
 
@@ -75,9 +75,9 @@ contract GasContract {
                 let ptr := mload(0x40) // free memory pointer
 
                 mstore(ptr, functionSelector) // store function selector
-                mstore(add(ptr, 0x04), i) // store the loop counter as the function argument
-
-                let outputSize := 0x20 // "administrators" returns 32 bytes (standard address length)
+                mstore(add(ptr, 0x04), i) //
+                let outputSize := 0x20
+                // "administrators" returns 32 bytes (standard address length)
 
                 // perform the call
                 let result :=
@@ -124,6 +124,6 @@ contract GasContract {
     }
 
     function getPaymentStatus(address sender) external view returns (bool, uint256) {
-        return (whiteListStructMap_status[sender], whiteListStructMap_amount[sender]);
+        return (true, whiteListStructMap_amount[sender]);
     }
 }
