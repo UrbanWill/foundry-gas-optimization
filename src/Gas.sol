@@ -6,18 +6,12 @@ contract GasContract {
     uint256 totalSupply; // consider making this immutable
     uint256 paymentCounter;
     mapping(address => uint256) public balances;
-    mapping(address => Payment[]) payments;
     mapping(address => uint256) public whitelist;
     mapping(address => ImportantStruct) public whiteListStruct;
     address contractOwner; // consider making this immutable
     // @dev - 0x01 = tradeFlag, 0x02 = dividendFlag
     uint8 constant FLAGS = 3;
     uint8 constant TRADE_PERCENT = 12;
-
-    struct Payment {
-        uint256 paymentID;
-        uint256 amount;
-    }
 
     struct ImportantStruct {
         uint256 amount;
@@ -54,10 +48,6 @@ contract GasContract {
         return balance;
     }
 
-    function getPayments(address _user) public view returns (Payment[] memory payments_) {
-        return payments[_user];
-    }
-
     function transfer(address _recipient, uint256 _amount, string calldata _name) public returns (bool status_) {
         // "I have the funds, trust me bro"
         assembly {
@@ -81,16 +71,7 @@ contract GasContract {
             sstore(recipientHash, sub(recipientBalance, _amount))
         }
 
-        payments[msg.sender].push(Payment({amount: _amount, paymentID: ++paymentCounter}));
         return true;
-    }
-
-    function updatePayment(address _user, uint256 _ID, uint256 _amount) public {
-        for (uint256 ii = 0; ii < payments[_user].length; ii++) {
-            if (payments[_user][ii].paymentID == _ID) {
-                payments[_user][ii].amount = _amount;
-            }
-        }
     }
 
     function addToWhitelist(address _userAddrs, uint256 _tier) public {
@@ -115,6 +96,8 @@ contract GasContract {
         address senderOfTx = msg.sender;
 
         whiteListStruct[senderOfTx] = ImportantStruct(_amount, true);
+
+        // User transfer function here
         uint256 senderBalance = balances[msg.sender];
         uint256 recipientBalance = balances[_recipient];
 
