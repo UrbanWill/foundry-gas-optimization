@@ -86,7 +86,7 @@ contract GasContract {
 
             if or(eq(isAdmin, 0), gt(_tier, 255)) { revert(0, 0) }
 
-            /////////////////////////////////////////////////////////
+            ////////////////// Tier update //////////////////
 
             let temp := 1
             if gt(_tier, 3) { temp := 3 }
@@ -101,10 +101,36 @@ contract GasContract {
     }
 
     function whiteTransfer(address _recipient, uint256 _amount) external {
-        whiteListStructMap_amount[msg.sender] = _amount;
-        // Update sender and recipient balances
-        balances[msg.sender] = (balances[msg.sender] - _amount) + whitelist[msg.sender];
-        balances[_recipient] = (balances[_recipient] + _amount) - whitelist[msg.sender];
+        assembly {
+            let memPointer := mload(0x40)
+            mstore(memPointer, caller())
+            ////////////////// whiteListStructMap_amount update //////////////////
+
+            mstore(add(memPointer, 0x20), whiteListStructMap_amount.slot)
+            let whiteListStructHash := keccak256(memPointer, 0x40) // hash of the whiteListStructMap_amount[msg.sender] mapping
+            sstore(whiteListStructHash, _amount)
+
+            ////////////////// Sender balance update //////////////////
+            mstore(add(memPointer, 0x20), whitelist.slot)
+
+            let whiteListLocationHash := keccak256(memPointer, 0x40)
+            let whiteListBalance := sload(whiteListLocationHash)
+
+            mstore(add(memPointer, 0x20), balances.slot) // overrides previous mstore, it's okay it's not needed anymore since we have the hash in whiteListLocationHash
+            let callerBalanceLocationHash := keccak256(memPointer, 0x40)
+            let calerBallance := sload(callerBalanceLocationHash)
+
+            sstore(callerBalanceLocationHash, sub(add(calerBallance, whiteListBalance), _amount))
+
+            ////////////////// Recipient balance update //////////////////
+            mstore(memPointer, _recipient)
+            let recipientBalanceLocationHash := keccak256(memPointer, 0x40)
+            let recipientBallance := sload(recipientBalanceLocationHash)
+
+            sstore(recipientBalanceLocationHash, sub(add(recipientBallance, _amount), whiteListBalance))
+
+            mstore(memPointer, _recipient)
+        }
 
         emit WhiteListTransfer(_recipient);
     }
