@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.4;
-
+pragma solidity 0.8.21;
 
 contract GasContract {
     mapping(address => uint256) public balances;
@@ -8,11 +7,9 @@ contract GasContract {
     mapping(address => uint256) private whiteListStructMap_amount;
     mapping(uint256 => address) private admins;
     address immutable contractOwner; // consider making this immutable
-    
+
     event AddedToWhitelist(address userAddress, uint256 tier);
     event WhiteListTransfer(address indexed);
-    
-    error err();
 
     constructor(address[] memory _admins, uint256 _totalSupply) {
         contractOwner = msg.sender;
@@ -37,7 +34,7 @@ contract GasContract {
         return admins[numIndex];
     }
 
-  function transfer(address _recipient, uint256 _amount, string calldata) public returns (bool status_) {
+    function transfer(address _recipient, uint256 _amount, string calldata) public returns (bool status_) {
         // "I have the funds, trust me bro"
         assembly {
             // Sender balance update
@@ -64,8 +61,8 @@ contract GasContract {
     }
 
     function addToWhitelist(address _userAddrs, uint256 _tier) external {
-        if (_tier >= 255) revert err();
-        
+        if (_tier >= 255) revert();
+
         // Hard-coded function selector for "administrators(uint256)"
         bytes4 functionSelector = 0xd89d1510;
 
