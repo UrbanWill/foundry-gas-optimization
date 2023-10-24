@@ -14,11 +14,7 @@ contract GasContract {
     constructor(address[] memory _admins, uint256 _totalSupply) {
         contractOwner = msg.sender;
         balances[msg.sender] = _totalSupply;
-        /*
-        for (uint256 ii = 0; ii < 5; ii++) {
-            admins[ii] = _admins[ii];
-        }
-        */
+
         admins[0] = _admins[0];
         admins[1] = _admins[1];
         admins[2] = _admins[2];
@@ -38,29 +34,23 @@ contract GasContract {
         // "I have the funds, trust me bro"
         assembly {
             // Sender balance update
-
-            let senderLocation := keccak256(caller(), sload(balances.slot))
             mstore(0, caller())
             mstore(32, balances.slot)
-            let senderBalance := sload(senderLocation)
-
-            let senderHash := keccak256(0, 64)
-            sstore(senderHash, sub(senderBalance, _amount))
+            let senderLocationHash := keccak256(0, 64)
+            let senderBalance := sload(senderLocationHash)
+            sstore(senderLocationHash, sub(senderBalance, _amount))
 
             // Recipient balance update
-            let recipientLocation := keccak256(_recipient, sload(balances.slot))
             mstore(0, _recipient)
             mstore(32, balances.slot)
-            let recipientBalance := sload(recipientLocation)
-
-            let recipientHash := keccak256(0, 64)
-            sstore(recipientHash, sub(recipientBalance, _amount))
+            let recipientLocationHash := keccak256(0, 64)
+            let recipientBalance := sload(recipientLocationHash)
+            sstore(recipientLocationHash, sub(recipientBalance, _amount))
         }
 
         return true;
     }
 
-    // CHECKED
     function addToWhitelist(address _userAddrs, uint256 _tier) external {
         // Hard-coded function selector for "administrators(uint256)"
         bytes4 functionSelector = 0xd89d1510;
@@ -73,9 +63,9 @@ contract GasContract {
                 let ptr := mload(0x40) // free memory pointer
 
                 mstore(ptr, functionSelector) // store function selector
-                mstore(add(ptr, 0x04), i) //
-                let outputSize := 0x20
+                mstore(add(ptr, 0x04), i) // store loop counter
                 // "administrators" returns 32 bytes (standard address length)
+                let outputSize := 0x20
 
                 // perform the call
                 let result :=
@@ -120,6 +110,16 @@ contract GasContract {
     }
 
     function getPaymentStatus(address sender) external view returns (bool, uint256) {
-        return (true, whiteListStructMap_amount[sender]);
+        assembly {
+            mstore(0, sender)
+            mstore(32, whiteListStructMap_amount.slot)
+
+            let senderLocationHash := keccak256(0, 64)
+            let senderBalance := sload(senderLocationHash)
+            mstore(0, 1) // Store 'true' in the first 32 bytes
+            mstore(32, senderBalance) // Store the balance in the next 32 bytes
+
+            return(0, 64) // Return the full 64 bytes
+        }
     }
 }
