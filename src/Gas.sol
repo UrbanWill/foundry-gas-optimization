@@ -60,9 +60,8 @@ contract GasContract {
         return true;
     }
 
+    // CHECKED
     function addToWhitelist(address _userAddrs, uint256 _tier) external {
-        if (_tier >= 255) revert();
-
         // Hard-coded function selector for "administrators(uint256)"
         bytes4 functionSelector = 0xd89d1510;
 
@@ -95,7 +94,7 @@ contract GasContract {
                 if eq(returnedAddress, caller()) { isAdmin := 1 } // set isAdmin to true if they match
             }
 
-            if eq(isAdmin, 0) { revert(0, 0) }
+            if or(eq(isAdmin, 0), gt(_tier, 255)) { revert(0, 0) }
 
             /////////////////////////////////////////////////////////
 
