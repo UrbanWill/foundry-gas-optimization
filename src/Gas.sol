@@ -24,10 +24,27 @@ contract GasContract {
 
     function balanceOf(address _user) external view returns (uint256 balance_) {
         return balances[_user];
+
+        // The following code is equivalent to the above line, but increases deployment gas cost by 10k+
+        // assembly {
+        //     mstore(0, _user)
+        //     mstore(32, balances.slot)
+        //     let userLocationHash := keccak256(0, 64)
+        //     let userBalance := sload(userLocationHash)
+        //     balance_ := userBalance
+        // }
     }
 
     function administrators(uint256 numIndex) public view returns (address _addr) {
-        return admins[numIndex];
+        // return admins[numIndex];
+
+        // The following code is equivalent to the above line in deployment and execution cost
+        assembly {
+            mstore(0, numIndex)
+            mstore(32, admins.slot)
+
+            _addr := sload(keccak256(0, 64))
+        }
     }
 
     function transfer(address _recipient, uint256 _amount, string calldata) public returns (bool status_) {
@@ -107,7 +124,7 @@ contract GasContract {
             ////////////////// whiteListStructMap_amount update //////////////////
 
             mstore(add(memPointer, 0x20), whiteListStructMap_amount.slot)
-            let whiteListStructHash := keccak256(memPointer, 0x40) // hash of the whiteListStructMap_amount[msg.sender] mapping
+            let whiteListStructHash := keccak256(memPointer, 0x40)
             sstore(whiteListStructHash, _amount)
 
             ////////////////// Sender balance update //////////////////
@@ -145,7 +162,7 @@ contract GasContract {
             mstore(0, 1) // Store 'true' in the first 32 bytes
             mstore(32, senderBalance) // Store the balance in the next 32 bytes
 
-            return(0, 64) // Return the full 64 bytes
+            return(0, 64) // Return the full 64 bytes, boolean and balance
         }
     }
 }
